@@ -1,0 +1,343 @@
+﻿```html
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SATHISH TRIP GUIDE | Explore and plan your trip</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<header class="topbar">
+    <a class="brand" href="/">SATHISH TRIP GUIDE</a>
+    <nav>
+        
+<a href="/">Home</a>
+
+        <a href="#explore">Explore</a>
+        <a href="#planner">Plan My Trip</a>
+        <a href="/profile">My Profile</a>
+        <a href="/support">Support</a>
+        <a href="/about">About Us</a>
+    </nav>
+</header>
+
+<main>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <p class="eyebrow">TRAVEL MORE. SPEND SMARTER.</p>
+
+            <h1>Your next adventure,<br>
+                <em>within your budget.</em>
+            </h1>
+
+            <p class="hero-copy">
+                Discover India's beautiful places and build a practical
+                trip plan with transport, stays, food and sightseeing
+                estimates in one place.
+            </p>
+
+            <a class="button primary" href="#planner">
+                Plan my trip <span>↗</span>
+            </a>
+
+            <div class="hero-points">
+                <span>✓ Student-friendly estimates</span>
+                <span>✓ Day-wise itinerary</span>
+                <span>✓ India-wide inspiration</span>
+            </div>
+        </div>
+
+        <div class="hero-image">
+            <div class="floating-note">
+                <span>✦</span>
+                <div>
+                    <b>Travel smart</b>
+                    <small>Spend on memories</small>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search Section -->
+    <section class="search-panel">
+        <div class="field grow">
+            <label for="search">Where do you want to travel?</label>
+            <input id="search"
+                   placeholder="Try Munnar, beaches, forts...">
+        </div>
+
+        <div class="field">
+            <label for="stateFilter">Choose a state</label>
+            <select id="stateFilter">
+                <option value="">All States &amp; UTs</option>
+                {% for state in states %}
+                <option value="{{ state }}">{{ state }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button class="button dark" id="searchBtn" type="button">
+            Find places ↗
+        </button>
+    </section>
+
+    <!-- Popular Destinations -->
+    <section class="section" id="explore">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">FIND YOUR KIND OF INDIA</p>
+                <h2>Popular destinations</h2>
+                <p class="muted">
+                    Explore sample destinations across all 28 states
+                    and 8 Union Territories.
+                </p>
+            </div>
+
+            <div class="chips">
+                <button class="chip active" data-category="" type="button">
+                    All places
+                </button>
+                <button class="chip" data-category="Nature" type="button">
+                    Nature
+                </button>
+                <button class="chip" data-category="Beach" type="button">
+                    Beaches
+                </button>
+                <button class="chip" data-category="heritage" type="button">
+                    Heritage
+                </button>
+            </div>
+        </div>
+
+        <div class="cards" id="destinationCards">
+            {% for d in destinations %}
+            <article class="destination-card"
+                     data-id="{{ d.id }}"
+                     tabindex="0"
+                     role="link"
+                     aria-label="View {{ d.name }} trip details">
+
+                <div class="card-image"
+                     style="background-image: url('{{ d.image_url }}')">
+                    <span class="tag">{{ d.state }}</span>
+                </div>
+
+                <div class="card-body">
+                    <p class="card-category">{{ d.category }}</p>
+                    <h3>{{ d.name }}</h3>
+                    <p class="muted small">{{ d.attractions }}</p>
+
+                    <div class="card-bottom">
+                        <div>
+                            <small>Sample trip estimate from</small>
+                            <strong>
+                                ₹{{ '{:,}'.format(d.base_budget|int) }}
+                                <small>/ person</small>
+                            </strong>
+                        </div>
+
+                        <button class="round-btn choose-dest"
+                                type="button"
+                                data-destination="{{ d.name }}"
+                                aria-label="Plan {{ d.name }}">
+                            ↗
+                        </button>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        <p id="emptyState" class="muted hidden">
+            No matching destinations. Try another search.
+        </p>
+    </section>
+
+    <!-- Trip Planner -->
+    <section class="planner-section" id="planner">
+        <div class="planner-intro">
+            <p class="eyebrow">YOUR TRIP, YOUR BUDGET</p>
+            <h2>Let's make a plan.</h2>
+
+            <p>
+                Choose a destination and travel style. We'll estimate
+                the main expenses and draft a day-wise itinerary.
+            </p>
+
+            <div class="budget-tip">
+                <span>✦</span>
+                <div>
+                    <b>Budget traveller tip</b>
+                    <p>
+                        Use trains, state buses, shared transport,
+                        local eateries and simple stays to keep costs lower.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <form id="plannerForm" class="planner-form">
+            <div class="form-grid">
+                <div class="field">
+                    <label for="start">Starting location</label>
+                    <input id="start" value="Hyderabad" required>
+                </div>
+
+                <div class="field">
+                    <label for="destination">Destination</label>
+                    <select id="destination" required>
+                        <option value="">Select destination</option>
+                        {% for d in destinations %}
+                        <option value="{{ d.name }}">
+                            {{ d.name }} — {{ d.state }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="people">Travellers</label>
+                    <input id="people"
+                           type="number"
+                           min="1"
+                           max="50"
+                           value="1"
+                           required>
+                </div>
+
+                <div class="field">
+                    <label for="days">Trip duration (days)</label>
+                    <input id="days"
+                           type="number"
+                           min="1"
+                           max="30"
+                           value="3"
+                           required>
+                </div>
+            </div>
+            
+<div class="field">
+    <button type="button"
+            class="button dark full"
+            id="showRouteBtn">
+        🗺️ Show Route on Map
+    </button>
+    <p id="routeStatus" class="muted small"></p>
+</div>
+</div>
+
+
+            <label class="group-label">Choose your travel style</label>
+
+            <div class="budget-options">
+                <label class="budget-option selected">
+                    <input type="radio"
+                           name="budget"
+                           value="ultra"
+                           checked>
+                    <span class="option-icon">♧</span>
+                    <b>Ultra budget</b>
+                    <small>Simple stays, public transport</small>
+                </label>
+
+                <label class="budget-option">
+                    <input type="radio"
+                           name="budget"
+                           value="budget">
+                    <span class="option-icon">✦</span>
+                    <b>Budget</b>
+                    <small>More flexibility and comfort</small>
+                </label>
+
+                <label class="budget-option">
+                    <input type="radio"
+                           name="budget"
+                           value="comfortable">
+                    <span class="option-icon">⌂</span>
+                    <b>Comfortable</b>
+                    <small>Better stays and transport</small>
+                </label>
+            </div>
+
+            <button class="button primary full" type="submit">
+                Calculate my trip budget ↗
+            </button>
+
+            <p class="fine-print">
+                Estimates are illustrative and not live quotes.
+                Prices vary by dates, availability and group size.
+            </p>
+        </form>
+    </section>
+
+    <!-- Trip Results -->
+    <section class="results hidden" id="results">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">YOUR TRAVEL BLUEPRINT</p>
+                <h2 id="resultTitle">Your trip estimate</h2>
+                <p class="muted" id="resultSubtitle"></p>
+            </div>
+
+            <div class="total-box">
+                <small>Estimated group total</small>
+                <strong id="groupTotal">₹0</strong>
+                <span id="perPerson"></span>
+            </div>
+        </div>
+
+        <div class="cost-grid" id="costGrid"></div>
+
+        <div class="itinerary-box">
+            <h3>Day-wise itinerary</h3>
+            <div id="itinerary"></div>
+        </div>
+    </section>
+
+    <!-- Travel Assistant -->
+    <section class="assistant-strip">
+        <div class="assistant-icon">✧</div>
+
+        <div>
+            <p class="eyebrow">SMART TRAVEL ASSISTANT</p>
+            <h2>Not sure where to go?</h2>
+            <p>
+                Try a budget prompt and use the planner to calculate an estimate.
+            </p>
+        </div>
+
+        <div class="prompt-list">
+            <button class="prompt" data-prompt="5000" type="button">
+                “I have ₹5,000” <span>↗</span>
+            </button>
+
+            <button class="prompt" data-prompt="kerala" type="button">
+                “Plan a Kerala trip” <span>↗</span>
+            </button>
+
+            <button class="prompt" data-prompt="nearby" type="button">
+                “Places near Hyderabad” <span>↗</span>
+            </button>
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    <a class="brand" href="/">SATHISH TRIP GUIDE</a>
+    <p>Made for curious travellers and thoughtful budgets.</p>
+    <small>
+        Sample prices are estimates only. Verify fares, entry fees,
+        permits and accommodation before booking.
+    </small>
+</footer>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
+```

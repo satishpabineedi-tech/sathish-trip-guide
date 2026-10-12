@@ -1,0 +1,87 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Profile | SATHISH TRIP GUIDE</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/">SATHISH TRIP GUIDE</a>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/about">About</a>
+            <a href="/support">Support</a>
+            <a href="/profile">Profile</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <h1>Create Your Profile</h1>
+        <p>Enter your details below.</p>
+
+        {% if message %}
+            <p role="status">{{ message }}</p>
+        {% endif %}
+
+        <form method="POST" action="/profile">
+            <div class="field">
+                <label for="name">Full Name</label>
+                <input id="name" name="name"
+                       type="text" maxlength="80" required>
+            </div>
+
+            <div class="field">
+                <label for="email">Email</label>
+                <input id="email" name="email"
+                       type="email" maxlength="120" required>
+            </div>
+
+            <div class="field">
+                <label for="phone">Phone (optional)</label>
+                <input id="phone" name="phone"
+                       type="tel" maxlength="20">
+            </div>
+
+            <button class="button primary" type="submit">
+                Create Profile
+            </button>
+        </form>
+        
+{% if profile_data %}
+    <section class="profile-details">
+        <h2>My Profile Details</h2>
+
+        <p>
+            <strong>Profile ID:</strong>
+            {{ profile_data['id'] }}
+        </p>
+
+        <p>
+            <strong>Full Name:</strong>
+            {{ profile_data['name'] }}
+        </p>
+
+        <p>
+            <strong>Email:</strong>
+            {{ profile_data['email'] }}
+        </p>
+
+        <p>
+            <strong>Phone:</strong>
+            {{ profile_data['phone'] or 'Not provided' }}
+        </p>
+
+        <p>
+            <strong>Created On:</strong>
+            {{ profile_data['created_at'] }}
+        </p>
+    </section>
+{% endif %}
+
+    </main>
+</body>
+</html>

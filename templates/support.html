@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Support | SATHISH TRIP GUIDE</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/">SATHISH TRIP GUIDE</a>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/about">About</a>
+            <a href="/support">Support</a>
+            <a href="/profile">Profile</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <h1>Contact Support</h1>
+        <p>Send us your question or problem.</p>
+
+        {% if message %}
+            <p role="status">{{ message }}</p>
+        {% endif %}
+
+        <form method="POST" action="/support">
+            <div class="field">
+                <label for="name">Your Name</label>
+                <input id="name" name="name"
+                       type="text" maxlength="80" required>
+            </div>
+
+            <div class="field">
+                <label for="email">Email</label>
+                <input id="email" name="email"
+                       type="email" maxlength="120" required>
+            </div>
+
+            <div class="field">
+                <label for="message">Message</label>
+                <textarea id="message" name="message"
+                          rows="5" maxlength="2000" required></textarea>
+            </div>
+
+            <button class="button primary" type="submit">
+                Send Message
+            </button>
+        </form>
+    </main>
+</body>
+</html>

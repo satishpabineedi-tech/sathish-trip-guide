@@ -1,0 +1,555 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>
+        {{ dest['name']|default('Destination', true) }}
+        Trip | Smart Travel Planner
+    </title>
+
+    <meta name="description"
+          content="Explore destinations, trip itineraries, travel options, stays and estimated budgets.">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        .destination-details {
+            max-width: 1150px;
+            margin: 35px auto;
+            padding: 0 24px 50px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #176b53;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .detail-hero {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            display: block;
+            border-radius: 20px;
+            background: #edf3ef;
+        }
+
+        .destination-heading {
+            margin: 25px 0;
+        }
+
+        .destination-heading h1 {
+            font-size: clamp(32px, 5vw, 52px);
+            margin: 10px 0;
+            color: #17312d;
+        }
+
+        .destination-heading p {
+            color: #65736e;
+            line-height: 1.7;
+        }
+
+        .eyebrow {
+            color: #176b53 !important;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .detail-section {
+            margin-top: 35px;
+        }
+
+        .detail-section h2 {
+            color: #17312d;
+            margin-bottom: 18px;
+        }
+
+        .detail-info,
+        .detail-places {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .detail-card,
+        .detail-place,
+        .detail-day {
+            padding: 22px;
+            background: #fff;
+            border: 1px solid #e1e9e4;
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.04);
+        }
+
+        .detail-card h3,
+        .detail-day h3 {
+            margin-top: 0;
+            color: #176b53;
+        }
+
+        .detail-card p,
+        .detail-place p,
+        .detail-day p {
+            color: #65736e;
+            line-height: 1.7;
+        }
+
+        .detail-day {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .day-number {
+            min-width: 65px;
+            color: #176b53;
+            font-weight: 700;
+        }
+
+        .detail-place {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .detail-place p {
+            margin: 0;
+        }
+
+        .trip-action {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 15px 24px;
+            background: #176b53;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+
+        .trip-action:hover {
+            background: #10533f;
+        }
+
+        .detail-footer {
+            padding: 30px 20px;
+            text-align: center;
+            border-top: 1px solid #e1e9e4;
+            color: #65736e;
+        }
+
+        .detail-footer a {
+            color: #176b53;
+            text-decoration: none;
+        }
+
+        @media (max-width: 600px) {
+            .destination-details {
+                margin-top: 20px;
+                padding: 0 16px 35px;
+            }
+
+            .detail-hero {
+                height: 250px;
+            }
+
+            .detail-day {
+                gap: 12px;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <a class="brand" href="/">
+        SATHISH TRIP GUIDE
+    </a>
+
+    <nav aria-label="Main navigation">
+        <a href="/">Home</a>
+        <a href="/#explore">Explore</a>
+        <a href="/#planner">Plan My Trip</a>
+        <a href="/about">About</a>
+        <a href="/support">Support</a>
+        <a href="/profile">Profile</a>
+    </nav>
+</header>
+
+
+<main class="destination-details">
+
+    <a class="back-link" href="/#explore">
+        ← Back to destinations
+    </a>
+
+
+    <!-- Destination image -->
+     <img
+    src="{{ image_url }}"
+    alt="{{ dest['name'] }}"
+    class="destination-detail-image"
+    onerror="this.onerror=null; this.src='https://loremflickr.com/1200/800/travel';"
+>
+    <img
+        class="detail-hero"
+        src="{{ dest['image_url']|default('', true)|e }}"
+        alt="{{ dest['name']|default('Travel destination', true)|e }}"
+        onerror="this.style.display='none';"
+    >
+
+
+    <!-- Destination information -->
+    <section class="destination-heading">
+
+        <p class="eyebrow">
+            {{ dest['state']|default('India', true) }}
+        </p>
+
+        <h1>
+            {{ dest['name']|default('Destination', true) }}
+        </h1>
+
+        <p>
+            Category:
+            {{ dest['category']|default('Travel destination', true) }}
+        </p>
+
+    </section>
+
+
+    <!-- Trip overview -->
+    <section class="detail-section">
+
+        <h2>Trip Overview</h2>
+
+        <div class="detail-info">
+
+            <article class="detail-card">
+                <h3>🗓️ Recommended Duration</h3>
+                <p>
+                    {{ dest['duration']|default('2–3 days', true) }}
+                </p>
+            </article>
+
+            <article class="detail-card">
+                <h3>💰 Estimated Budget</h3>
+                <p>
+                    ₹{{ '{:,}'.format(
+                        dest['base_budget']|default(0, true)|int
+                    ) }}
+                    per person
+                </p>
+                <p>
+                    Actual expenses depend on your travel dates,
+                    transport, food and accommodation.
+                </p>
+            </article>
+
+            <article class="detail-card">
+                <h3>📍 Destination</h3>
+                <p>
+                    {{ dest['name']|default('Destination', true) }},
+                    {{ dest['state']|default('India', true) }}
+                </p>
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- Places to visit -->
+    <section class="detail-section" id="places">
+
+        <h2>Popular Places to Visit</h2>
+
+        <div class="detail-places">
+
+            {% for place in attractions|default([], true) %}
+
+            <article class="detail-place">
+                <span aria-hidden="true">📍</span>
+                <p>{{ place }}</p>
+            </article>
+
+            {% else %}
+
+            <article class="detail-place">
+                <p>
+                    More attraction details will be added soon.
+                </p>
+            </article>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+
+    <!-- Day-wise itinerary -->
+    <section class="detail-section" id="itinerary">
+
+        <h2>Suggested Day-wise Itinerary</h2>
+
+        {% for place in attractions|default([], true) %}
+
+        <article class="detail-day">
+
+            <span class="day-number">
+                DAY {{ loop.index }}
+            </span>
+
+            <div>
+                <h3>{{ place }}</h3>
+
+                <p>
+                    Visit this attraction, explore the local area,
+                    take breaks for meals and allow time for travel.
+                </p>
+            </div>
+
+        </article>
+
+        {% else %}
+
+        <article class="detail-card">
+            <p>
+                A detailed itinerary is not available yet.
+                Please use Plan My Trip to calculate an estimate.
+            </p>
+        </article>
+
+        {% endfor %}
+
+        <p>
+            <small>
+                This is a suggested itinerary. Actual timings and
+                travel duration depend on the route and conditions.
+            </small>
+        </p>
+
+    </section>
+
+
+    <!-- Travel options -->
+    <section class="detail-section" id="travel">
+
+        <h2>Travel Options</h2>
+
+        <div class="detail-info">
+
+            <article class="detail-card">
+                <h3>🚆 Train</h3>
+                <p>
+                    Compare train routes, fares and timings.
+                    Check availability for your travel date.
+                </p>
+            </article>
+
+            <article class="detail-card">
+                <h3>🚌 Bus</h3>
+                <p>
+                    Compare public and private buses, journey
+                    duration and ticket prices.
+                </p>
+            </article>
+
+            <article class="detail-card">
+                <h3>✈️ Flight</h3>
+                <p>
+                    Check available flights, fares and nearby
+                    airports when suitable for your route.
+                </p>
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- Accommodation options -->
+    <section class="detail-section" id="stay">
+
+        <h2>Stay Options</h2>
+
+        <div class="detail-info">
+
+            <article class="detail-card">
+                <h3>🏨 Budget Stay</h3>
+                <p>
+                    Compare hostels, budget hotels and affordable
+                    accommodation near attractions.
+                </p>
+            </article>
+
+            <article class="detail-card">
+                <h3>🛏️ Comfortable Stay</h3>
+                <p>
+                    Compare hotel locations, room facilities
+                    and prices before choosing.
+                </p>
+            </article>
+
+            <article class="detail-card">
+                <h3>📌 Booking Tip</h3>
+                <p>
+                    Check reviews, cancellation policies and
+                    the total cost before booking.
+                </p>
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- Budget calculator link -->
+    <section class="detail-section">
+
+        <h2>Plan Your Trip</h2>
+
+        <p>
+            Enter your starting location, number of travellers,
+            trip duration and budget to calculate an estimated cost.
+        </p>
+
+        <a class="trip-action"
+           href="/#planner">
+            Calculate My Trip Budget ↗
+        </a>
+
+    </section>
+
+</main>
+
+
+<footer class="detail-footer">
+
+    <a class="brand" href="/">
+        SATHISH TRIP GUIDE
+    </a>
+
+    <p>
+        Travel more. Spend smarter.
+    </p>
+
+    <p>
+        <a href="/about">About</a>
+        &nbsp; | &nbsp;
+        <a href="/support">Help & Support</a>
+        &nbsp; | &nbsp;
+        <a href="/">Explore Places</a>
+    </p>
+
+    <small>
+        Travel estimates are indicative and may change.
+        Verify prices and availability before booking.
+    </small>
+
+</footer>
+
+<!-- DAY-WISE ITINERARY -->
+<section class="trip-extra-section">
+    <p class="eyebrow">YOUR TRAVEL PLAN</p>
+    <h2>Day-wise Itinerary</h2>
+    <p class="trip-muted">
+        A sample 3-day plan. You can adjust it to your travel dates.
+    </p>
+
+    <div class="trip-day-grid">
+        {% for item in day_plan %}
+        <article class="trip-info-card">
+            <span class="trip-day-label">DAY {{ item.day }}</span>
+
+            <h3>
+                {% if item.day == 1 %}
+                    Arrival & Exploration
+                {% elif item.day == 2 %}
+                    Sightseeing
+                {% else %}
+                    Final Day & Return
+                {% endif %}
+            </h3>
+
+            <p><strong>Morning:</strong> {{ item.morning }}</p>
+            <p><strong>Afternoon:</strong> {{ item.afternoon }}</p>
+            <p><strong>Evening:</strong> {{ item.evening }}</p>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- HOTEL / STAY OPTIONS -->
+<section class="trip-extra-section">
+    <p class="eyebrow">WHERE TO STAY</p>
+    <h2>Stay Options</h2>
+
+    <div class="trip-day-grid">
+        {% for hotel in hotel_options %}
+        <article class="trip-info-card">
+            <h3>{{ hotel.name }}</h3>
+            <p class="trip-price">{{ hotel.price }}</p>
+            <p>{{ hotel.description }}</p>
+            <small>Estimated cost per room per night.</small>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- TRANSPORT OPTIONS -->
+<section class="trip-extra-section">
+    <p class="eyebrow">GETTING AROUND</p>
+    <h2>Transport Options</h2>
+
+    <div class="trip-day-grid">
+        {% for transport in transport_options %}
+        <article class="trip-info-card">
+            <h3>{{ transport.name }}</h3>
+            <p>{{ transport.description }}</p>
+        </article>
+        {% endfor %}
+    </div>
+
+    <p class="trip-muted">
+        Local transport sample budget:
+        {{ local_transport_budget }}
+    </p>
+</section>
+
+<!-- FOOD COSTS -->
+<section class="trip-extra-section">
+    <p class="eyebrow">TASTE THE LOCAL FOOD</p>
+    <h2>Food & Meal Budget</h2>
+
+    <div class="trip-day-grid">
+        {% for food in food_budget %}
+        <article class="trip-info-card">
+            <h3>{{ food.name }}</h3>
+            <p class="trip-price">{{ food.price }}</p>
+            <p>{{ food.description }}</p>
+        </article>
+        {% endfor %}
+    </div>
+
+    <p class="trip-muted">
+        Food prices are estimates per person. Actual costs vary by location
+        and restaurant.
+    </p>
+</section>
+
+
+</body>
+</html>
