@@ -24,15 +24,16 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 
 
+
 def get_destination_image(name):
     images = {
-
         "Swaraj Dweep (Havelock)": "swaraj-dweep-havelock.jpg",
         "Visakhapatnam": "visakhapatnam.jpg",
         "Tawang": "tawang.jpg",
         "Guwahati & Kaziranga": "guwahati-kaziranga.jpg",
         "Bodh Gaya": "bodh-gaya.jpg",
         "Chandigarh": "chandigarh.jpg",
+        "Chandigarh city": "chandigarh.jpg",
         "Chitrakote Falls": "chitrakote-falls.jpg",
         "Diu": "diu.jpg",
         "New Delhi": "new-delhi.jpg",
@@ -48,9 +49,6 @@ def get_destination_image(name):
         "Leh": "leh.jpg",
         "Mumbai": "mumbai.jpg",
         "Shillong & Cherrapunji": "shillong-cherrapunji.jpg",
-        
-        # Additional local destination photos
-        "Chandigarh City": "chandigarh.jpg",
         "Ranchi & Hundru Falls": "hundru-falls.jpg",
         "Agatti Island": "agatti_island.jpg",
         "Khajuraho": "khajuraho.jpg",
@@ -59,37 +57,6 @@ def get_destination_image(name):
         "Kohima": "kohima.jpg",
         "Puri & Konark": "puri_konark.jpg",
         "Puducherry Town": "puducherry.jpg",
-        "Amritsar": "amritsar.jpg",
-        "Jaipur": "jaipur.jpg",
-        "Gangtok": "gangtok.jpg",
-        "Ooty": "ooty.jpg",
-        "Hyderabad": "hyderabad.jpg",
-        "Warangal": "warangal.jpg",
-        "Agartala": "agartala.jpg",
-        "Agra": "agra.jpg",
-        "Rishikesh": "rishikesh.jpg",
-        "Darjeeling": "darjeeling.jpg",
-
-         }
-
-    filename = images.get(name, "home.jpg")
-    image_path = BASE / "static" / "images" / filename
-
-    if image_path.is_file():
-        return f"/static/images/{filename}"
-
-    return "/static/images/home.jpg"
-
-    # Local photos for the additional destinations
-    local_images = {
-        "Chandigarh city": "chandigarh.jpg",
-        "Ranchi & Hundru Falls": "ranchi.jpg",
-        "Agatti Island": "agatti.jpg",
-        "Khajuraho": "khajuraho.jpg",
-        "Imphal & Loktak Lake": "imphal.jpg",
-        "Aizawl": "aizawl.jpg",
-        "Kohima": "kohima.jpg",
-        "Puri & Konark": "puri.jpg",
         "Puducherry town": "puducherry.jpg",
         "Amritsar": "amritsar.jpg",
         "Jaipur": "jaipur.jpg",
@@ -103,15 +70,13 @@ def get_destination_image(name):
         "Darjeeling": "darjeeling.jpg",
     }
 
-    filename = local_images.get(name)
+    filename = images.get(name, "home.jpg")
+    image_path = BASE / "static" / "images" / filename
 
-    if filename:
-        image_path = BASE / "static" / "images" / filename
+    if image_path.is_file():
+        return f"/static/images/{filename}"
 
-        if image_path.is_file():
-            return "/static/images/" + filename
-
-
+    return "/static/images/home.jpg"
 
 # --------------------------------------------------
 # DESTINATION DATA
@@ -253,100 +218,117 @@ def connect():
 # DATABASE INITIALIZATION
 # --------------------------------------------------
 
+
 def init_db():
-    with connect() as con:
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS destinations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                state TEXT NOT NULL,
-                name TEXT NOT NULL,
-                category TEXT,
-                duration TEXT,
-                base_budget REAL,
-                attractions TEXT,
-                image_url TEXT
-            )
-        """)
-                # User accounts for signup and login
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE COLLATE NOCASE,
-                password_hash TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+    try:
+        with connect() as con:
 
-        # Add user_id to existing profiles table if it is missing.
-        # This preserves existing profile records.
-        profile_columns = {
-            row["name"]
-            for row in con.execute(
-                "PRAGMA table_info(profiles)"
-            ).fetchall()
-        }
-
-        if "user_id" not in profile_columns:
+            # 1. Destinations table
             con.execute("""
-                ALTER TABLE profiles
-                ADD COLUMN user_id INTEGER REFERENCES users(id)
+                CREATE TABLE IF NOT EXISTS destinations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    state TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    category TEXT,
+                    duration TEXT,
+                    base_budget REAL,
+                    attractions TEXT,
+                    image_url TEXT
+                )
             """)
 
-        # Each account can have only one profile.
-        con.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS
-            idx_profiles_user_id
-            ON profiles(user_id)
-            WHERE user_id IS NOT NULL
-        """)
-
-        count = con.execute(
-            "SELECT COUNT(*) FROM destinations"
-        ).fetchone()[0]
-
-        if count == 0:
-            con.executemany("""
-                INSERT INTO destinations
-                (state, name, category, duration, base_budget,
-                 attractions, image_url)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, SAMPLE)
-
-        # User profiles
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS profiles (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL,
-                phone TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        # Support messages
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS support_messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL,
-                message TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        # Update images for all existing destinations.
-        # Existing destination IDs and other data are preserved.
-        destinations = con.execute(
-            "SELECT id, name, image_url FROM destinations"
-        ).fetchall()
-
-        for dest in destinations:
+            # 2. Users table
             con.execute("""
-                UPDATE destinations
-                SET image_url = ?
-                WHERE id = ?
-            """, (get_destination_image(dest["name"]), dest["id"]))
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                    password_hash TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # 3. Create profiles table before checking its columns
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS profiles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    phone TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # 4. Add user_id only if it does not exist
+            profile_columns = {
+                row["name"]
+                for row in con.execute(
+                    "PRAGMA table_info(profiles)"
+                ).fetchall()
+            }
+
+            if "user_id" not in profile_columns:
+                con.execute("""
+                    ALTER TABLE profiles
+                    ADD COLUMN user_id INTEGER REFERENCES users(id)
+                """)
+
+            # 5. One profile per registered user
+            con.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_user_id
+                ON profiles(user_id)
+                WHERE user_id IS NOT NULL
+            """)
+
+            # 6. Support messages table
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS support_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # 7. Add sample destinations only if the table is empty
+            count = con.execute(
+                "SELECT COUNT(*) FROM destinations"
+            ).fetchone()[0]
+
+            if count == 0:
+                con.executemany("""
+                    INSERT INTO destinations (
+                        state,
+                        name,
+                        category,
+                        duration,
+                        base_budget,
+                        attractions,
+                        image_url
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, SAMPLE)
+
+            # 8. Refresh image paths without deleting destinations
+            destinations = con.execute(
+                "SELECT id, name FROM destinations"
+            ).fetchall()
+
+            for dest in destinations:
+                image_path = get_destination_image(dest["name"])
+
+                con.execute("""
+                    UPDATE destinations
+                    SET image_url = ?
+                    WHERE id = ?
+                """, (image_path, dest["id"]))
+
+        print("Database initialized successfully.")
+
+    except sqlite3.Error as error:
+        print(f"Database initialization error: {error}")
+        raise
 
 
 # --------------------------------------------------
