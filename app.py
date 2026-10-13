@@ -1,5 +1,7 @@
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+import os
+from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 from pathlib import Path
 from urllib.parse import quote
@@ -8,7 +10,13 @@ BASE = Path(__file__).resolve().parent
 DB = BASE / "travel.db"
 
 app = Flask(__name__)
+app.secret_key = os.environ.get(
+    "SECRET_KEY",
+    "local-development-key-change-before-deploying"
+)
 
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 # --------------------------------------------------
 # DESTINATION IMAGE FUNCTION
@@ -18,6 +26,7 @@ app = Flask(__name__)
 
 def get_destination_image(name):
     images = {
+
         "Swaraj Dweep (Havelock)": "swaraj-dweep-havelock.jpg",
         "Visakhapatnam": "visakhapatnam.jpg",
         "Tawang": "tawang.jpg",
@@ -39,7 +48,29 @@ def get_destination_image(name):
         "Leh": "leh.jpg",
         "Mumbai": "mumbai.jpg",
         "Shillong & Cherrapunji": "shillong-cherrapunji.jpg",
-    }
+        
+        # Additional local destination photos
+        "Chandigarh City": "chandigarh.jpg",
+        "Ranchi & Hundru Falls": "hundru-falls.jpg",
+        "Agatti Island": "agatti_island.jpg",
+        "Khajuraho": "khajuraho.jpg",
+        "Imphal & Loktak Lake": "loktak_lake.jpg",
+        "Aizawl": "aizawl.jpg",
+        "Kohima": "kohima.jpg",
+        "Puri & Konark": "puri_konark.jpg",
+        "Puducherry Town": "puducherry.jpg",
+        "Amritsar": "amritsar.jpg",
+        "Jaipur": "jaipur.jpg",
+        "Gangtok": "gangtok.jpg",
+        "Ooty": "ooty.jpg",
+        "Hyderabad": "hyderabad.jpg",
+        "Warangal": "warangal.jpg",
+        "Agartala": "agartala.jpg",
+        "Agra": "agra.jpg",
+        "Rishikesh": "rishikesh.jpg",
+        "Darjeeling": "darjeeling.jpg",
+
+         }
 
     filename = images.get(name, "home.jpg")
     image_path = BASE / "static" / "images" / filename
@@ -48,6 +79,37 @@ def get_destination_image(name):
         return f"/static/images/{filename}"
 
     return "/static/images/home.jpg"
+
+    # Local photos for the additional destinations
+    local_images = {
+        "Chandigarh city": "chandigarh.jpg",
+        "Ranchi & Hundru Falls": "ranchi.jpg",
+        "Agatti Island": "agatti.jpg",
+        "Khajuraho": "khajuraho.jpg",
+        "Imphal & Loktak Lake": "imphal.jpg",
+        "Aizawl": "aizawl.jpg",
+        "Kohima": "kohima.jpg",
+        "Puri & Konark": "puri.jpg",
+        "Puducherry town": "puducherry.jpg",
+        "Amritsar": "amritsar.jpg",
+        "Jaipur": "jaipur.jpg",
+        "Gangtok": "gangtok.jpg",
+        "Ooty": "ooty.jpg",
+        "Hyderabad": "hyderabad.jpg",
+        "Warangal": "warangal.jpg",
+        "Agartala": "agartala.jpg",
+        "Agra": "agra.jpg",
+        "Rishikesh": "rishikesh.jpg",
+        "Darjeeling": "darjeeling.jpg",
+    }
+
+    filename = local_images.get(name)
+
+    if filename:
+        image_path = BASE / "static" / "images" / filename
+
+        if image_path.is_file():
+            return "/static/images/" + filename
 
 
 
@@ -204,6 +266,39 @@ def init_db():
                 attractions TEXT,
                 image_url TEXT
             )
+        """)
+                # User accounts for signup and login
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Add user_id to existing profiles table if it is missing.
+        # This preserves existing profile records.
+        profile_columns = {
+            row["name"]
+            for row in con.execute(
+                "PRAGMA table_info(profiles)"
+            ).fetchall()
+        }
+
+        if "user_id" not in profile_columns:
+            con.execute("""
+                ALTER TABLE profiles
+                ADD COLUMN user_id INTEGER REFERENCES users(id)
+            """)
+
+        # Each account can have only one profile.
+        con.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            idx_profiles_user_id
+            ON profiles(user_id)
+            WHERE user_id IS NOT NULL
         """)
 
         count = con.execute(
@@ -486,56 +581,166 @@ def about():
 # PROFILE CREATION
 # --------------------------------------------------
 
-@app.route("/profile", methods=["GET", "POST"])
-def profile():
+
+# --------------------------------------------------
+# SIGNUP
+# --------------------------------------------------
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
     message = ""
-    profile_data = None
 
     if request.method == "POST":
         name = request.form.get("name", "").strip()
-        email = request.form.get("email", "").strip()
+        email = request.form.get("email", "").strip().lower()
         phone = request.form.get("phone", "").strip()
+        password = request.form.get("password", "")
 
-        if not name or not email:
-            message = "Please enter your name and email."
+        if not name or not email or not password:
+            message = "Please fill in all required fields."
 
-        elif (
-            len(name) > 80
-            or len(email) > 120
-            or len(phone) > 20
-        ):
+        elif len(name) > 80 or len(email) > 120 or len(phone) > 20:
             message = "Please check the length of your details."
 
         elif "@" not in email or "." not in email.split("@")[-1]:
             message = "Please enter a valid email address."
 
+        elif len(password) < 8:
+            message = "Password must be at least 8 characters."
+
         else:
             try:
+                password_hash = generate_password_hash(password)
+
                 with connect() as con:
-                    con.execute("""
-                        INSERT INTO profiles (name, email, phone)
+                    cursor = con.execute("""
+                        INSERT INTO users
+                            (name, email, password_hash)
                         VALUES (?, ?, ?)
-                    """, (name, email, phone))
+                    """, (name, email, password_hash))
 
-                message = "Profile created successfully!"
+                    user_id = cursor.lastrowid
 
-            except sqlite3.Error:
-                app.logger.exception("Could not save profile")
-                message = "Unable to save profile. Please try again."
+                    con.execute("""
+                        INSERT INTO profiles
+                            (user_id, name, email, phone)
+                        VALUES (?, ?, ?, ?)
+                    """, (user_id, name, email, phone))
+
+                session.clear()
+                session["user_id"] = user_id
+
+                return redirect(url_for("profile"))
+
+            except sqlite3.IntegrityError:
+                message = "This email is already registered. Please log in."
+
+    return render_template("signup.html", message=message)
+
+
+# --------------------------------------------------
+# LOGIN
+# --------------------------------------------------
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    message = ""
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+
+        with connect() as con:
+            user = con.execute("""
+                SELECT id, name, email, password_hash
+                FROM users
+                WHERE email = ? COLLATE NOCASE
+            """, (email,)).fetchone()
+
+        if user and check_password_hash(
+            user["password_hash"], password
+        ):
+            session.clear()
+            session["user_id"] = user["id"]
+            return redirect(url_for("profile"))
+
+        message = "Incorrect email or password."
+
+    return render_template("login.html", message=message)
+
+
+# --------------------------------------------------
+# PROFILE: LOGIN REQUIRED
+# --------------------------------------------------
+
+@app.route("/profile", methods=["GET", "POST"])
+def profile():
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return redirect(url_for("login"))
+
+    message = ""
 
     with connect() as con:
+        user = con.execute("""
+            SELECT id, name, email
+            FROM users
+            WHERE id = ?
+        """, (user_id,)).fetchone()
+
+        if not user:
+            session.clear()
+            return redirect(url_for("login"))
+
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            phone = request.form.get("phone", "").strip()
+
+            if not name:
+                message = "Please enter your name."
+
+            elif len(name) > 80 or len(phone) > 20:
+                message = "Please check the length of your details."
+
+            else:
+                con.execute("""
+                    UPDATE users
+                    SET name = ?
+                    WHERE id = ?
+                """, (name, user_id))
+
+                con.execute("""
+                    UPDATE profiles
+                    SET name = ?, phone = ?
+                    WHERE user_id = ?
+                """, (name, phone, user_id))
+
+                message = "Profile updated successfully!"
+
         profile_data = con.execute("""
             SELECT id, name, email, phone, created_at
             FROM profiles
-            ORDER BY id DESC
-            LIMIT 1
-        """).fetchone()
+            WHERE user_id = ?
+        """, (user_id,)).fetchone()
 
     return render_template(
-        "profile.html",
-        message=message,
-        profile_data=profile_data
+        "account.html",
+        user=user,
+        profile_data=profile_data,
+        message=message
     )
+
+
+# --------------------------------------------------
+# LOGOUT
+# --------------------------------------------------
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
 
 
 # --------------------------------------------------

@@ -1,0 +1,49 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Profile | SATHISH TRIP GUIDE</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="profile-page">
+        <section class="profile-card">
+            <h1>SATHISH TRIP GUIDE</h1>
+            <h2>My Profile</h2>
+            <p>Your details are saved to your account.</p>
+
+            {% if message %}
+                <p role="status">{{ message }}</p>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('profile') }}">
+                <label for="name">Full name</label>
+                <input id="name" name="name" type="text"
+                       maxlength="80"
+                       value="{{ profile_data['name'] }}"
+                       autocomplete="name" required>
+
+                <label for="email">Email</label>
+                <input id="email" type="email"
+                       value="{{ profile_data['email'] }}"
+                       readonly>
+                <small>Email is linked to your account.</small>
+
+                <label for="phone">Phone</label>
+                <input id="phone" name="phone" type="tel"
+                       maxlength="20"
+                       value="{{ profile_data['phone'] or '' }}"
+                       autocomplete="tel">
+
+                <button type="submit">Update Profile</button>
+            </form>
+
+            <p><a href="{{ url_for('home') }}">Back to Home</a></p>
+            <p><a href="{{ url_for('logout') }}">Log Out</a></p>
+        </section>
+    </main>
+</body>
+</html>
