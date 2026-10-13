@@ -15,40 +15,40 @@ app = Flask(__name__)
 # --------------------------------------------------
 
 
+
 def get_destination_image(name):
     images = {
-        "Hyderabad": "photo-1572445271230-a78b5944a659",
-        "Warangal": "photo-1606293926075-69a00db0943b",
-        "Munnar": "photo-1602216056096-3b40cc0c9944",
-        "Alleppey": "photo-1593693411515-c20261bcad6e",
-        "Kochi": "photo-1593693411515-c20261bcad6e",
-        "Panaji & North Goa": "photo-1512343879784-a960bf40e7f2",
-        "Mysuru": "photo-1600112356915-08988c7c9b1e",
-        "Ooty": "photo-1597074866923-dc0589150358",
-        "Jaipur": "photo-1599661046827-dacff0c0f09a",
-        "Agra": "photo-1564507592333-c60657eea523",
-        "Manali": "photo-1626621341517-bbf3d9990a23",
-        "Darjeeling": "photo-1544735716-392fe2489ffa",
-        "Visakhapatnam": "photo-1512343879784-a960bf40e7f2",
-        "Tawang": "photo-1464822759023-fed622ff2c3b",
-        "Mumbai": "photo-1570168007204-dfb528c6958f",
-        "Srinagar": "photo-1464822759023-fed622ff2c3b",
-        "Leh": "photo-1464822759023-fed622ff2c3b",
-        "Rishikesh": "photo-1464822759023-fed622ff2c3b",
-        "New Delhi": "photo-1564507592333-c60657eea523",
-        "Puri & Konark": "photo-1512343879784-a960bf40e7f2",
-        "Gangtok": "photo-1464822759023-fed622ff2c3b",
+        "Swaraj Dweep (Havelock)": "swaraj-dweep-havelock.jpg",
+        "Visakhapatnam": "visakhapatnam.jpg",
+        "Tawang": "tawang.jpg",
+        "Guwahati & Kaziranga": "guwahati-kaziranga.jpg",
+        "Bodh Gaya": "bodh-gaya.jpg",
+        "Chandigarh": "chandigarh.jpg",
+        "Chitrakote Falls": "chitrakote-falls.jpg",
+        "Diu": "diu.jpg",
+        "New Delhi": "new-delhi.jpg",
+        "Panaji & North Goa": "panaji-north-goa.jpg",
+        "Ahmedabad & Statue of Unity": "ahmedabad-statue-of-unity.jpg",
+        "Kurukshetra": "kurukshetra.jpg",
+        "Manali": "manali.jpg",
+        "Srinagar": "srinagar.jpg",
+        "Mysuru": "mysuru.jpg",
+        "Alleppey": "alleppey.jpg",
+        "Kochi": "kochi.jpg",
+        "Munnar": "munnar.jpg",
+        "Leh": "leh.jpg",
+        "Mumbai": "mumbai.jpg",
+        "Shillong & Cherrapunji": "shillong-cherrapunji.jpg",
     }
 
-    photo_id = images.get(
-        name,
-        "photo-1470770841072-f978cf4d019e"
-    )
+    filename = images.get(name, "home.jpg")
+    image_path = BASE / "static" / "images" / filename
 
-    return (
-        f"https://images.unsplash.com/{photo_id}"
-        "?auto=format&fit=crop&w=1200&q=80"
-    )
+    if image_path.is_file():
+        return f"/static/images/{filename}"
+
+    return "/static/images/home.jpg"
+
 
 
 # --------------------------------------------------
@@ -258,6 +258,7 @@ def init_db():
 # CONVERT DATABASE ROWS TO DICTIONARIES
 # --------------------------------------------------
 init_db()
+
 def rows_to_dict(rows):
     results = []
 
