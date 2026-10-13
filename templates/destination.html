@@ -550,6 +550,30 @@
     </p>
 </section>
 
+<!-- WhatsApp Contact Support -->
+<a
+    class="whatsapp-support"
+    href="https://wa.me/917416846164?text=Hello%2C%20I%20need%20support%20with%20SATHISH%20TRIP%20GUIDE."
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="Contact SATHISH TRIP GUIDE on WhatsApp"
+>
+    <span class="whatsapp-icon">☏</span>
+    <span>Contact Support</span>
+</a>
+
+<!-- Dynamic WhatsApp Support -->
+<a
+    class="whatsapp-support"
+    href="https://wa.me/917416846164?text={{ ('Hello, I need support regarding ' ~ dest['name'] ~ ' from SATHISH TRIP GUIDE.') | urlencode }}"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="Get WhatsApp support for this destination"
+>
+    <span class="whatsapp-icon">☏</span>
+    <span>Support for {{ dest['name'] }}</span>
+</a>
+
 
 </body>
 </html>
