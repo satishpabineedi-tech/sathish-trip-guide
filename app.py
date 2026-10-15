@@ -1,6 +1,7 @@
 
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import os
+import re
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 from pathlib import Path
@@ -787,37 +788,76 @@ def destination_details(destination_id):
     if dest is None:
         return "Destination not found", 404
 
+    destination_name = dest["name"]
+    state = dest["state"]
     attractions = [
-        place.strip()
-        for place in (dest["attractions"] or "").split(",")
-        if place.strip()
+        item.strip()
+        for item in (dest["attractions"] or "").split(",")
+        if item.strip()
     ]
+    if not attractions:
+        attractions = [destination_name]
 
-    image_url = get_destination_image(dest["name"])
-    # Sample 3-day itinerary
+    image_url = get_destination_image(destination_name)
+
+    # Use the destination's saved recommended duration.
+    duration_text = str(dest["duration"] or "3 days")
+    duration_numbers = [int(n) for n in re.findall(r"\d+", duration_text)]
+    days = duration_numbers[0] if duration_numbers else 3
+    days = max(1, min(days, 7))
+    nights = max(0, days - 1)
+
+    # Destination-specific transport guidance.
+    lower_name = destination_name.lower()
+    if any(word in lower_name for word in ["island", "havelock", "agatti"]):
+        transport_options = [
+            {"name": "Reach the island", "description": "Plan flights to the relevant island gateway and confirm ferry/boat schedules and permits before booking."},
+            {"name": "Local transport", "description": "Use locally available shared jeeps, buses, autos or pre-arranged transfers. Availability can be limited."},
+            {"name": "Sightseeing transfers", "description": "Group nearby beaches and attractions together to reduce transfer costs."}
+        ]
+    elif any(word in lower_name for word in ["leh", "tawang", "srinagar", "manali", "gangtok", "darjeeling", "munnar", "ooty", "shillong", "rishikesh", "aizawl", "kohima"]):
+        transport_options = [
+            {"name": "Train / Flight + Road", "description": "Compare the nearest major railhead or airport with onward bus/shared taxi fares for your travel dates."},
+            {"name": "State / Shared Bus", "description": "Usually a lower-cost choice where routes operate; check seasonal schedules and road conditions."},
+            {"name": "Local Shared Taxi", "description": "Useful for attractions outside town. Confirm per-seat or full-vehicle prices before departure."}
+        ]
+    else:
+        transport_options = [
+            {"name": "Train", "description": f"Compare train routes to the nearest major station for {destination_name}; fares depend on your starting city, class and date."},
+            {"name": "Public / State Bus", "description": "Compare government and private buses for the intercity journey; overnight services may save one night's stay."},
+            {"name": "Local Transport", "description": "Use local buses, shared autos or app-based cabs where available. Group nearby attractions to reduce costs."}
+        ]
+
+    # A destination-specific cost factor: remote/island and major tourist hubs
+    # generally cost more than smaller inland destinations.
+    if any(word in lower_name for word in ["island", "havelock", "agatti", "leh", "tawang"]):
+        destination_cost_factor = 1.35
+    elif any(word in lower_name for word in ["mumbai", "new delhi", "panaji", "goa", "srinagar", "manali", "gangtok", "munnar", "ooty", "shillong", "darjeeling"]):
+        destination_cost_factor = 1.18
+    elif any(word in lower_name for word in ["hyderabad", "kochi", "jaipur", "agra", "visakhapatnam", "mysuru", "chandigarh"]):
+        destination_cost_factor = 1.08
+    else:
+        destination_cost_factor = 1.0
+
+    # A destination-specific daily plan built around the attractions saved for this place.
     day_plan = []
-
-    for day in range(1, 4):
-        if attractions:
-            place1 = attractions[(day - 1) % len(attractions)]
-            place2 = attractions[(day) % len(attractions)]
-        else:
-            place1 = dest["name"]
-            place2 = dest["name"]
+    for day in range(1, days + 1):
+        first = attractions[(day - 1) % len(attractions)]
+        second = attractions[day % len(attractions)] if len(attractions) > 1 else attractions[0]
+        third = attractions[(day + 1) % len(attractions)] if len(attractions) > 2 else second
 
         if day == 1:
-            morning = "Reach the destination and check in to your stay."
-            afternoon = f"Explore {place1}."
-            evening = "Enjoy a local market or nearby sightseeing."
-        elif day == 2:
-            morning = f"Visit {place1}."
-            afternoon = f"Explore {place2}."
-            evening = "Try local food and enjoy the evening."
+            morning = f"Reach {destination_name}, check in or leave luggage, and get local travel information."
+            afternoon = f"Explore {first}; check opening times and entry fees before visiting."
+            evening = f"Walk around the nearby town/market and try affordable local food in {destination_name}."
+        elif day == days:
+            morning = f"Visit {first} and allow enough time for photos and sightseeing."
+            afternoon = f"If time permits, explore {second}; otherwise keep this time for lunch and checkout."
+            evening = "Collect luggage and start the return journey. Keep a buffer for traffic or transport delays."
         else:
-            morning = f"Visit {place1} or another nearby attraction."
-            afternoon = "Shopping, photography, or relaxed sightseeing."
-            evening = "Check out and plan your return journey."
-
+            morning = f"Start early for {first} to avoid crowds where possible."
+            afternoon = f"Continue to {second}. Have lunch nearby and check the travel time between attractions."
+            evening = f"Visit {third} or a nearby market/viewpoint, then return to your stay."
         day_plan.append({
             "day": day,
             "morning": morning,
@@ -825,70 +865,112 @@ def destination_details(destination_id):
             "evening": evening
         })
 
-    # Example stay prices per room per night
-    hotel_options = [
+    # Estimates use the destination's existing base_budget as a starting reference.
+    # They are planning estimates, not live quotes or guaranteed current prices.
+    base = max(1200, float(dest["base_budget"] or 3000))
+    budget_specs = [
         {
-            "name": "Budget Stay",
-            "price": "₹500–₹1,000",
-            "description": "Basic room or budget guesthouse"
+            "key": "ultra",
+            "name": "Ultra Budget",
+            "factor": 0.72,
+            "stay_factor": 0.55,
+            "food_day": 300,
+            "local_day": 180,
+            "tickets_day": 120,
+            "other_day": 100,
+            "description": "Hostel/shared room, public transport and simple local meals."
         },
         {
-            "name": "Standard Hotel",
-            "price": "₹1,200–₹2,500",
-            "description": "Private room with basic facilities"
+            "key": "budget",
+            "name": "Budget",
+            "factor": 1.00,
+            "stay_factor": 1.00,
+            "food_day": 500,
+            "local_day": 300,
+            "tickets_day": 220,
+            "other_day": 150,
+            "description": "Private budget room, a mix of public transport and local restaurants."
         },
         {
-            "name": "Comfort Stay",
-            "price": "₹2,500+",
-            "description": "More comfort and additional facilities"
+            "key": "comfortable",
+            "name": "Comfortable",
+            "factor": 1.65,
+            "stay_factor": 1.85,
+            "food_day": 900,
+            "local_day": 650,
+            "tickets_day": 400,
+            "other_day": 300,
+            "description": "More comfortable hotel, convenient transfers and restaurant meals."
         }
     ]
 
-    # General transport suggestions
-    transport_options = [
-        {
-            "name": "Train",
-            "description": "Useful for intercity travel; fare depends on route and class."
-        },
-        {
-            "name": "Bus",
-            "description": "Compare state bus and private bus options."
-        },
-        {
-            "name": "Local Transport",
-            "description": "Use local buses, shared autos, or cabs as available."
-        }
-    ]
+    # Destination-side estimates per person; intercity transport is shown separately
+    # because the visitor's starting city is not known on this page.
+    budget_plans = []
+    hotel_options = []
+    food_budget = []
+    for spec in budget_specs:
+        trip_reference = base * spec["factor"]
+        room_per_night = max(350, round((base / max(days, 1)) * 0.30 * spec["stay_factor"] / 50) * 50)
+        food_day = round(spec["food_day"] * destination_cost_factor / 10) * 10
+        local_day = round(spec["local_day"] * destination_cost_factor / 10) * 10
+        tickets_day = round(spec["tickets_day"] * destination_cost_factor / 10) * 10
+        other_day = round(spec["other_day"] * destination_cost_factor / 10) * 10
+        stay_total = room_per_night * nights
+        food_total = food_day * days
+        local_total = local_day * days
+        tickets_total = tickets_day * days
+        other_total = other_day * days
+        total = stay_total + food_total + local_total + tickets_total + other_total
 
-    # Illustrative food budget per person per day
+        # Keep the existing destination's base budget relevant, without presenting
+        # an unknown starting-city fare as a confirmed price.
+        target_total = round(trip_reference / 100) * 100
+        budget_plans.append({
+            "key": spec["key"],
+            "name": spec["name"],
+            "description": spec["description"],
+            "stay_per_night": room_per_night,
+            "stay_total": stay_total,
+            "food_per_day": food_day,
+            "food_total": food_total,
+            "local_per_day": local_day,
+            "local_total": local_total,
+            "tickets_per_day": tickets_day,
+            "tickets_total": tickets_total,
+            "other_total": other_total,
+            "destination_total": total,
+            "reference_budget": target_total
+        })
+        hotel_options.append({
+            "name": spec["name"] + " Stay",
+            "price": f"₹{room_per_night:,} per room/night",
+            "description": spec["description"]
+        })
+
     food_budget = [
-        {
-            "name": "Budget Food",
-            "price": "₹250–₹400 per day",
-            "description": "Local eateries, breakfast and simple meals"
-        },
-        {
-            "name": "Standard Food",
-            "price": "₹400–₹700 per day",
-            "description": "A mix of local restaurants and cafes"
-        }
+        {"name": "Breakfast", "price": "₹60–₹120", "description": f"Local breakfast or regional options in {destination_name}; budget varies by area."},
+        {"name": "Lunch", "price": "₹100–₹220", "description": f"Simple local meals/thali around {destination_name}; check menu prices before ordering."},
+        {"name": "Dinner", "price": "₹100–₹250", "description": f"Local dinner options in {destination_name}; tourist-area restaurants may cost more."},
+        {"name": "Comfortable meals", "price": "₹350–₹900 per day", "description": f"Restaurant meals/cafes around {destination_name}; actual cost depends on menu and location."}
     ]
 
-    local_transport_budget = "₹200–₹500 per person per day (sample estimate)"
-    return render_template(
-        "destination.html",
-        dest=dest,
-        attractions=attractions,
-        image_url=image_url
+    local_transport_budget = (
+        f"Ultra Budget ₹180/day; Budget ₹300/day; Comfortable ₹650/day "
+        f"(per person estimate for {destination_name}; intercity fare excluded)."
     )
+
     return render_template(
         "destination.html",
         dest=dest,
         attractions=attractions,
+        image_url=image_url,
         day_plan=day_plan,
         hotel_options=hotel_options,
         transport_options=transport_options,
         food_budget=food_budget,
+        budget_plans=budget_plans,
+        recommended_days=days,
         local_transport_budget=local_transport_budget
     )
 
